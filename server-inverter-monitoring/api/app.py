@@ -38,7 +38,7 @@ def receive_reading():
     if not data:
         return jsonify({"status": "error", "message": "Invalid or empty JSON payload"}), 400
 
-    print(f"Data received from ESP: {data}")
+    # print(f"Data received from ESP: {data}")
 
     try:
         point = Point("inverter_readings") \
