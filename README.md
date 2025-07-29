@@ -33,7 +33,7 @@ The protocol implementation in the ESP32 firmware leverages the `jrbenito/ABBAur
 1.  **Clone the Repository:**
     ```bash
     cd ~/projects/ # Or your preferred directory
-    git clone [https://github.com/mattiamelodia/Aurora-Inverter-Monitoring-System.git](https://github.com/mattiamelodia/Aurora-Inverter-Monitoring-System.git)
+    git clone https://github.com/mattiamelodia/Aurora-Inverter-Monitoring-System.git
     cd Aurora-Inverter-Monitoring-System/server-inverter-monitoring/
     ```
     *(Note: The backend is located directly in `server-inverter-monitoring/`.)*
