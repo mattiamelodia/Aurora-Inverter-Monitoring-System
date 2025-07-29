@@ -36,7 +36,7 @@ The protocol implementation in the ESP32 firmware leverages the `jrbenito/ABBAur
     git clone https://github.com/mattiamelodia/Aurora-Inverter-Monitoring-System.git
     cd Aurora-Inverter-Monitoring-System/server-inverter-monitoring/
     ```
-    *(Note: The backend is located directly in `server-inverter-monitoring/`.)*
+    *(Note: The backend is located directly in `server-inverter-monitoring/`).*
 
 2.  **Configure `.env` File:**
     This file stores InfluxDB and Grafana credentials. **It must not be committed to Git.**
@@ -102,9 +102,9 @@ Configure the following Proxy Hosts in NGINX Proxy Manager (`http://<YOUR_SERVER
 This section covers ESP32 firmware configuration and upload.
 
 1.  **Configure `config.yaml` and `secrets.yaml`:**
-    The `config.yaml` file in `esp32/esphome-aurora-inverter/` uses ESPHome's `secrets` mechanism for sensitive data (like Wi-Fi credentials and the API endpoint URL).
+    The `config.yaml` file in `/esphome-aurora-inverter/` uses ESPHome's `secrets` mechanism for sensitive data (like Wi-Fi credentials and the API endpoint URL).
 
-    **`config.yaml` example (within `esp32/esphome-aurora-inverter/`):**
+    **`config.yaml` example (within `/esphome-aurora-inverter/`):**
     This configuration sends inverter data to your API every 60 seconds, but only if the `power_in_total` is greater than zero (i.e., when the inverter is actively producing power).
 
     ```yaml
@@ -141,18 +141,18 @@ This section covers ESP32 firmware configuration and upload.
     # ... other configurations ...
     ```
 
-    **You MUST create a `secrets.yaml` file** in the same directory (`esp32/esphome-aurora-inverter/`) with your actual credentials and API base URL:
+    **You MUST create a `secrets.yaml` file** in the same directory (`/esphome-aurora-inverter/`) with your actual credentials and API base URL:
     ```yaml
     wifi_ssid: "Your_WiFi_SSID"
     wifi_password: "Your_WiFi_Password"
-    inverter_api_url: "[https://api.yourdomain.com](https://api.yourdomain.com)"
+    inverter_api_url: "https://api.yourdomain.com"
     ```
     This `secrets.yaml` file is handled by `.gitignore` and is not part of the Git repository.
 
 2.  **Compile and Upload:**
     From your local machine, navigate to the ESPHome project directory:
     ```bash
-    cd /path/to/your/Aurora-Inverter-Monitoring-System/esp32/esphome-aurora-inverter/
+    cd /path/to/your/Aurora-Inverter-Monitoring-System/esphome-aurora-inverter/
     esphome run config.yaml
     ```
     Follow ESPHome's prompts to connect your ESP32 and upload the firmware.
@@ -161,7 +161,7 @@ This section covers ESP32 firmware configuration and upload.
 
 ## Credits and Attribution
 
-The ESP32 firmware configuration (`esp32/esphome-aurora-inverter/`) in this project is based on the work by **Michel Sciortino**. The original repository can be found here:
+The ESP32 firmware configuration (`/esphome-aurora-inverter/`) in this project is based on the work by **Michel Sciortino**. The original repository can be found here:
 
 [https://github.com/michelsciortino/esphome-aurora-inverter](https://github.com/michelsciortino/esphome-aurora-inverter)
 
