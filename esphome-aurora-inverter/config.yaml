@@ -47,7 +47,6 @@ sensor:
         accuracy_decimals: 0
         device_class: power
         state_class: measurement
-
       - name: power_peak_today
         id: power_peak_today
         unit_of_measurement: W
@@ -60,14 +59,12 @@ sensor:
         accuracy_decimals: 0
         device_class: power
         state_class: measurement
-
       - name: inverter_temp
         id: inverter_temp
         unit_of_measurement: "°C"
         accuracy_decimals: 2
         device_class: temperature
         state_class: measurement
-
       - name: cumulated_energy_today
         id: cumulated_energy_today
         unit_of_measurement: "Wh"
@@ -98,7 +95,6 @@ sensor:
         accuracy_decimals: 0
         device_class: energy
         state_class: total_increasing
-
       - name: Grid Voltage
         id: grid_voltage
         unit_of_measurement: V
@@ -126,7 +122,7 @@ interval:
           then:
             - http_request.send:
                 method: POST
-                url: https://api-inverter.esp32.ip-ddns.com/api/reading
+                url: "${inverter_api_url}/api/inverter_data"
                 request_headers:
                   Content-Type: application/json
                 json: !lambda |-
