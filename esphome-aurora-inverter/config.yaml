@@ -1,0 +1,148 @@
+external_components:
+  - source: "./components"
+    components: [custom, custom_component]
+
+esphome:
+  name: inverter
+  includes:
+    - ABBAuroraStrings.cpp
+    - ABBAuroraStrings.h
+    - ABBAuroraEnums.h
+    - ABBAurora.cpp
+    - ABBAurora.h
+    - InverterMonitor.h
+  libraries:
+    - "Wire"
+
+esp32:
+  board: esp32dev
+
+wifi:
+  ssid: ${wifi_ssid}
+  password: ${wifi_password}
+
+http_request:
+  verify_ssl: false
+
+captive_portal:
+logger:
+ota:
+  platform: esphome
+
+sensor:
+  - platform: custom
+    lambda: |-
+      auto monitor = InverterMonitor::get_instance();
+      App.register_component(monitor);
+      return {
+        monitor->power_in_total, monitor->power_peak_today, monitor->power_peak_max,
+        monitor->temperature_inverter, monitor->cumulated_energy_today, monitor->cumulated_energy_week,
+        monitor->cumulated_energy_month, monitor->cumulated_energy_year,
+        monitor->cumulated_energy_total, monitor->grid_voltage
+      };
+    sensors:
+      - name: power_in_total
+        id: power_in_total
+        unit_of_measurement: W
+        accuracy_decimals: 0
+        device_class: power
+        state_class: measurement
+
+      - name: power_peak_today
+        id: power_peak_today
+        unit_of_measurement: W
+        accuracy_decimals: 0
+        device_class: power
+        state_class: measurement
+      - name: power_peak_max
+        id: power_peak_max
+        unit_of_measurement: W
+        accuracy_decimals: 0
+        device_class: power
+        state_class: measurement
+
+      - name: inverter_temp
+        id: inverter_temp
+        unit_of_measurement: "°C"
+        accuracy_decimals: 2
+        device_class: temperature
+        state_class: measurement
+
+      - name: cumulated_energy_today
+        id: cumulated_energy_today
+        unit_of_measurement: "Wh"
+        accuracy_decimals: 0
+        device_class: energy
+        state_class: total_increasing
+      - name: cumulated_energy_week
+        id: cumulated_energy_week
+        unit_of_measurement: "Wh"
+        accuracy_decimals: 0
+        device_class: energy
+        state_class: total_increasing
+      - name: cumulated_energy_month
+        id: cumulated_energy_month
+        unit_of_measurement: "Wh"
+        accuracy_decimals: 0
+        device_class: energy
+        state_class: total_increasing
+      - name: cumulated_energy_year
+        id: cumulated_energy_year
+        unit_of_measurement: "Wh"
+        accuracy_decimals: 0
+        device_class: energy
+        state_class: total_increasing
+      - name: cumulated_energy_total
+        id: cumulated_energy_total
+        unit_of_measurement: "Wh"
+        accuracy_decimals: 0
+        device_class: energy
+        state_class: total_increasing
+
+      - name: Grid Voltage
+        id: grid_voltage
+        unit_of_measurement: V
+        accuracy_decimals: 2
+        device_class: voltage
+        state_class: measurement
+
+text_sensor:
+  - platform: custom
+    lambda: |-
+      auto monitor = InverterMonitor::get_instance();
+      return { monitor->connection_status };
+    text_sensors:
+      #Status
+      - name: connection_status
+        id: connection_status
+        icon: "mdi:connection"
+
+interval:
+  - interval: 60s 
+    then:
+      - if:
+          condition:
+            lambda: return id(power_in_total).state > 0;
+          then:
+            - http_request.send:
+                method: POST
+                url: https://api-inverter.esp32.ip-ddns.com/api/reading
+                request_headers:
+                  Content-Type: application/json
+                json: !lambda |-
+
+                  root["power_in_total"] = id(power_in_total).state;
+                  root["power_peak_today"] = id(power_peak_today).state;
+                  root["power_peak_max"] = id(power_peak_max).state;
+
+                  root["inverter_temp"] = id(inverter_temp).state;
+
+                  root["cumulated_energy_today"] = id(cumulated_energy_today).state;
+                  root["cumulated_energy_week"] = id(cumulated_energy_week).state;
+                  root["cumulated_energy_month"] = id(cumulated_energy_month).state;
+                  root["cumulated_energy_year"] = id(cumulated_energy_year).state;
+                  root["cumulated_energy_total"] = id(cumulated_energy_total).state;
+
+                  root["grid_voltage"] = id(grid_voltage).state;
+
+                  root["connection_status"] = id(connection_status).state;

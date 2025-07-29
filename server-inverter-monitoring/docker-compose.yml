@@ -1,0 +1,58 @@
+volumes:
+  influxdb2_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  reverse-proxy:
+    external: true
+
+services:
+  # 1. Database for time-series data
+  influxdb:
+    image: influxdb:2.7
+    container_name: influxdb
+    hostname: influxdb
+    restart: unless-stopped
+    volumes:
+      - influxdb2_data:/var/lib/influxdb2
+    networks:
+      - reverse-proxy
+    ports:
+      - "8086:8086"
+    # We expose the port directly for now. Then API Server and Grafana will communicate
+    # with it over the internal Docker network.
+
+  # 2. API Server to receive data from the ESP32
+  api-inverter:
+    build:
+      context: ./api
+    env_file: .env
+    container_name: api-inverter
+    hostname: api-inverter
+    restart: unless-stopped
+    networks:
+      - reverse-proxy
+    ports:
+      # Expose container's port 5000 to the host's port 5000
+      - "5000:5000"
+    depends_on:
+      - influxdb
+
+  # 3. Visualization platform for dashboards
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    hostname: grafana
+    restart: unless-stopped
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    networks:
+      - reverse-proxy
+    ports:
+      # Expose container's port 3000 to the host's port 3000
+      - "3000:3000"
+    depends_on:
+      - influxdb
