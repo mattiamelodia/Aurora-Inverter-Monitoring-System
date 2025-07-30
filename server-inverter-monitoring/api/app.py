@@ -3,6 +3,7 @@ import math # Importiamo la libreria matematica per controllare i valori NaN
 from flask import Flask, request, jsonify
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
+from influxdb_client.client.query_api import QueryApi
 
 # --- Flask App Initialization ---
 app = Flask(__name__)
@@ -21,6 +22,8 @@ try:
 except Exception as e:
     print(f"FATAL: Could not connect to InfluxDB. Please check credentials and URL. Error: {e}")
     client = None
+    
+query_api = client.query_api()
 
 VALIDATION_RANGES = {
     "grid_voltage": (180, 280),
@@ -28,7 +31,75 @@ VALIDATION_RANGES = {
     "inverter_temp": (-20, 120),
 }
 
-# --- API Endpoint Definition ---
+
+@app.route('/api/power', methods=['GET'])
+def get_power():
+    if not client:
+        return jsonify({"status": "error", "message": "InfluxDB client not initialized"}), 500
+    try:
+        query = f'''
+        from(bucket:"{INFLUXDB_BUCKET}")
+        |> range(start: -1h)
+        |> filter(fn: (r) => r._measurement == "inverter_readings" and r._field == "power_in_total")
+        |> last()
+        '''
+        tables = query_api.query(query, org=INFLUXDB_ORG)
+
+        if not tables or len(tables) == 0:
+            return jsonify({"status": "error", "message": "No data found"}), 404
+        
+        last_power = None
+        for table in tables:
+            for record in table.records:
+                last_power = record.get_value()
+
+        if last_power is None:
+            return jsonify({"status": "error", "message": "No power data available"}), 404
+        
+        return jsonify({
+            "status": "success",
+            "power_in_total": last_power
+        })
+
+    except Exception as e:
+        print(f"ERROR fetching power data: {e}")
+        return jsonify({"status": "error", "message": "Error fetching data"}), 500
+    
+
+@app.route('/api/energy/today', methods=['GET'])
+def get_today_energy():
+    if not client:
+        return jsonify({"status": "error", "message": "InfluxDB client not initialized"}), 500
+    try:
+        query = f'''
+        from(bucket:"{INFLUXDB_BUCKET}")
+        |> range(start: -1h)
+        |> filter(fn: (r) => r._measurement == "inverter_readings" and r._field == "cumulated_energy_today")
+        |> last()
+        '''
+        tables = query_api.query(query, org=INFLUXDB_ORG)
+
+        if not tables or len(tables) == 0:
+            return jsonify({"status": "error", "message": "No data found"}), 404
+        
+        cumulated_energy_today = None
+        for table in tables:
+            for record in table.records:
+                cumulated_energy_today = record.get_value()
+
+        if cumulated_energy_today is None:
+            return jsonify({"status": "error", "message": "No energy data available"}), 404
+        
+        return jsonify({
+            "status": "success",
+            "cumulated_energy_today": cumulated_energy_today
+        })
+
+    except Exception as e:
+        print(f"ERROR fetching power data: {e}")
+        return jsonify({"status": "error", "message": "Error fetching data"}), 500
+    
+
 @app.route('/api/reading', methods=['POST'])
 def receive_reading():
     if not client:
