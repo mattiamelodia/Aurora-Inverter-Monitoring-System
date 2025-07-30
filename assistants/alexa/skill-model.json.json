@@ -1,0 +1,41 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "inverter aurora",
+      "intents": [
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "HelloWorldIntent",
+          "slots": [],
+          "samples": ["ciao", "come stai", "dì ciao", "salutami", "salutarmi"]
+        },
+        {
+          "name": "AMAZON.NavigateHomeIntent",
+          "samples": []
+        },
+        {
+          "name": "GetInverterPowerIntent",
+          "slots": [],
+          "samples": ["quanto produce"]
+        },
+        {
+          "name": "GetDailyEnergyIntent",
+          "slots": [],
+          "samples": ["quanto ha prodotto oggi"]
+        }
+      ],
+      "types": []
+    }
+  }
+}
