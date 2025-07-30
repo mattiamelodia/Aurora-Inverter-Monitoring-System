@@ -67,7 +67,7 @@ def get_power():
     
 
 @app.route('/api/energy/today', methods=['GET'])
-def get_power():
+def get_today_energy():
     if not client:
         return jsonify({"status": "error", "message": "InfluxDB client not initialized"}), 500
     try:
