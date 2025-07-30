@@ -1,3 +1,6 @@
+substitutions:
+  <<: !include secrets.yaml
+
 external_components:
   - source: "./components"
     components: [custom, custom_component]
@@ -140,5 +143,3 @@ interval:
                   root["cumulated_energy_total"] = id(cumulated_energy_total).state;
 
                   root["grid_voltage"] = id(grid_voltage).state;
-
-                  root["connection_status"] = id(connection_status).state;
