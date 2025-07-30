@@ -66,6 +66,40 @@ def get_power():
         return jsonify({"status": "error", "message": "Error fetching data"}), 500
     
 
+@app.route('/api/energy/today', methods=['GET'])
+def get_power():
+    if not client:
+        return jsonify({"status": "error", "message": "InfluxDB client not initialized"}), 500
+    try:
+        query = f'''
+        from(bucket:"{INFLUXDB_BUCKET}")
+        |> range(start: -1h)
+        |> filter(fn: (r) => r._measurement == "inverter_readings" and r._field == "cumulated_energy_today")
+        |> last()
+        '''
+        tables = query_api.query(query, org=INFLUXDB_ORG)
+
+        if not tables or len(tables) == 0:
+            return jsonify({"status": "error", "message": "No data found"}), 404
+        
+        cumulated_energy_today = None
+        for table in tables:
+            for record in table.records:
+                cumulated_energy_today = record.get_value()
+
+        if cumulated_energy_today is None:
+            return jsonify({"status": "error", "message": "No energy data available"}), 404
+        
+        return jsonify({
+            "status": "success",
+            "cumulated_energy_today": cumulated_energy_today
+        })
+
+    except Exception as e:
+        print(f"ERROR fetching power data: {e}")
+        return jsonify({"status": "error", "message": "Error fetching data"}), 500
+    
+
 @app.route('/api/reading', methods=['POST'])
 def receive_reading():
     if not client:
