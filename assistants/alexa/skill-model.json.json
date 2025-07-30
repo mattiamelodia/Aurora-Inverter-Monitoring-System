@@ -5,34 +5,95 @@
       "intents": [
         {
           "name": "AMAZON.CancelIntent",
-          "samples": []
+          "samples": ["annulla", "non importa", "lascia perdere", "ignora"]
         },
         {
           "name": "AMAZON.HelpIntent",
-          "samples": []
+          "samples": [
+            "aiuto",
+            "cosa posso chiederti",
+            "che cosa sai fare",
+            "cosa posso fare",
+            "dimmi cosa fare",
+            "istruzioni"
+          ]
         },
         {
           "name": "AMAZON.StopIntent",
-          "samples": []
-        },
-        {
-          "name": "HelloWorldIntent",
-          "slots": [],
-          "samples": ["ciao", "come stai", "dì ciao", "salutami", "salutarmi"]
-        },
-        {
-          "name": "AMAZON.NavigateHomeIntent",
-          "samples": []
-        },
-        {
-          "name": "GetInverterPowerIntent",
-          "slots": [],
-          "samples": ["quanto produce"]
+          "samples": [
+            "stop",
+            "fermati",
+            "esci",
+            "basta così",
+            "chiudi",
+            "a posto così"
+          ]
         },
         {
           "name": "GetDailyEnergyIntent",
           "slots": [],
-          "samples": ["quanto ha prodotto oggi"]
+          "samples": [
+            "quanta energia ho prodotto oggi",
+            "quanta energia ha prodotto oggi",
+            "la produzione di oggi",
+            "qual è la produzione di oggi",
+            "il totale giornaliero",
+            "produzione totale di oggi",
+            "quanti kilowattora ho fatto oggi",
+            "come è andata la giornata",
+            "totale giornaliero",
+            "leggi l'energia di oggi",
+            "la produzione giornaliera",
+            "rapporto energetico di oggi",
+            "energia cumulata oggi",
+            "produzione fotovoltaico oggi",
+            "quanto abbiamo fatto oggi",
+            "riepilogo di oggi"
+          ]
+        },
+        {
+          "name": "GetInverterPowerIntent",
+          "slots": [],
+          "samples": [
+            "quanto producono i pannelli",
+            "qual è la potenza attuale",
+            "quanta energia sta facendo adesso",
+            "quanto sta producendo l'inverter",
+            "quanto stanno producendo i pannelli solari",
+            "qual è la produzione attuale dell'impianto",
+            "quanti watt sta generando l'inverter",
+            "quanta corrente stanno facendo i pannelli",
+            "la potenza istantanea",
+            "qual è l'output energetico attuale",
+            "a quanto sta producendo il fotovoltaico",
+            "la produzione di energia in questo momento",
+            "leggi la potenza in uscita",
+            "a quanto viaggia l'inverter",
+            "controlla la produzione dei pannelli",
+            "i dati di produzione",
+            "la potenza attuale dell'inverter",
+            "che verifica la produzione del fotovoltaico",
+            "quanto produce l'impianto",
+            "come stanno andando i pannelli",
+            "l'inverter sta producendo",
+            "che mi dice della produzione",
+            "produzione attuale",
+            "potenza inverter",
+            "watt adesso",
+            "stato produzione",
+            "potenza in questo momento"
+          ]
+        },
+        {
+          "name": "CompareProductionIntent",
+          "slots": [],
+          "samples": [
+            "ho prodotto più oggi o ieri",
+            "confronta la produzione di oggi con quella di ieri",
+            "come sta andando rispetto a ieri",
+            "dammi un confronto con ieri",
+            "meglio oggi o ieri"
+          ]
         }
       ],
       "types": []

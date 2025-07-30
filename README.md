@@ -1,34 +1,39 @@
 # Aurora-Inverter-Monitoring-System
 
-A Docker-based and ESP32-powered system for monitoring Aurora/Power-One inverters. It collects real-time data, stores it in InfluxDB, and visualizes it via Grafana dashboards.
+A Docker-based and ESP32-powered system for monitoring Aurora/Power-One inverters. It collects real-time data, stores it in InfluxDB, and visualizes it via Grafana dashboards, with added support for voice control via Amazon Alexa.
+
+![Grafana Dashboard Example](./docs/images/grafana_dashboard.png)
+
+## System Architecture
+
+The system is composed of three main parts that work together: a physical ESP32 device reading data from the inverter, a Dockerized backend on a server that stores and processes this data, and a voice interface via an Alexa Skill.
+
 
 ## System Components
 
 1.  **Docker Backend (on VPS/Server):**
-    * **InfluxDB 2.x**: Time-Series database.
-    * **Grafana**: Data visualization.
-    * **Python/Flask API**: Receives ESP32 data, writes to InfluxDB.
+    *   **InfluxDB 2.x**: Time-Series database.
+    *   **Grafana**: Data visualization.
+    *   **Python/Flask API**: Receives ESP32 data, writes to InfluxDB, and provides endpoints for voice assistants.
 
 2.  **ESP32 Firmware (physical device):**
-    * ESPHome-based firmware connects to the inverter and sends data to the API.
+    *   ESPHome-based firmware connects to the inverter and sends data to the API.
+
+3.  **Voice Assistant Integration (Amazon Alexa):**
+    *   A custom Alexa skill communicates with an AWS Lambda function, which in turn queries the Flask API to retrieve data.
 
 ## Prerequisites
 
-* **Server/VPS**: With Docker, Docker Compose Plugin, and Git installed.
-* **NGINX Proxy Manager (NPM)**: Installed and configured on your server for subdomain/SSL management.
-* **ESPHome CLI**: On your local machine.
-* **Inverter**: Aurora/Power-One compatible.
-* **Hardware**: ESP32 board with RS485 adapter.
+*   **Server/VPS**: With Docker, Docker Compose Plugin, and Git installed.
+*   **NGINX Proxy Manager (NPM)**: Installed and configured on your server for subdomain/SSL management.
+*   **ESPHome CLI**: On your local machine.
+*   **Inverter**: Aurora/Power-One compatible.
+*   **Hardware**: ESP32 board with RS485 adapter.
+*   **Amazon Developer Account**: Required for creating the Alexa Skill and Lambda function.
 
-## Communication Protocol
+## Installation and Configuration Guide
 
-The Aurora Communication Protocol (version 4.2), used for communication with the inverter, is detailed in this document:
-[https://www.drhack.it/images/PDF/AuroraCommunicationProtocol_4_2.pdf](https://www.drhack.it/images/PDF/AuroraCommunicationProtocol_4_2.pdf)
-
-The protocol implementation in the ESP32 firmware leverages the `jrbenito/ABBAurora` library:
-[https://github.com/jrbenito/ABBAurora](https://github.com/jrbenito/ABBAurora)
-
-## Docker Backend Setup (on Server)
+### 1. Docker Backend Setup (on Server)
 
 1.  **Clone the Repository:**
     ```bash
@@ -75,71 +80,39 @@ The protocol implementation in the ESP32 firmware leverages the `jrbenito/ABBAur
     ```
     Confirm `influxdb`, `grafana`, and `api-inverter` are `Up`.
 
-## Grafana Configuration
+### 2. NGINX Proxy Manager Configuration
+
+Configure the following Proxy Hosts in NGINX Proxy Manager (`http://<YOUR_SERVER_IP>:81`) to securely access your services.
+
+*   **Grafana:**
+    *   Domain: `grafana.yourdomain.com`
+    *   Forward Hostname / IP: `grafana`
+    *   Forward Port: `3000`
+    *   Enable SSL.
+*   **Inverter API:**
+    *   Domain: `api.yourdomain.com`
+    *   Forward Hostname / IP: `api-inverter`
+    *   Forward Port: `5000`
+    *   Enable SSL.
+
+### 3. Grafana Configuration
 
 1.  **Access Grafana UI:**
-    `http://<YOUR_SERVER_IP>:3000` (or your configured NGINX Proxy Manager domain). Log in with your Grafana credentials from `.env`.
+    Navigate to your configured Grafana domain (e.g., `https://grafana.yourdomain.com`). Log in with your Grafana credentials from the `.env` file.
 2.  **Import Dashboards:**
     Go to "Dashboards" -> "New Dashboard" -> "Import". Upload your `dashboard.json` and select the appropriate InfluxDB data source.
 
-## NGINX Proxy Manager Configuration
+### 4. ESP32 Firmware Setup
 
-Configure the following Proxy Hosts in NGINX Proxy Manager (`http://<YOUR_SERVER_IP>:81`):
+This section covers configuring the physical ESP32 device to send data to your newly deployed API. The firmware and hardware connection logic are based on the work by **Michel Sciortino**.
 
-* **Grafana:**
-    * Domain: `grafana.yourdomain.com`
-    * Forward Hostname / IP: `grafana`
-    * Forward Port: `3000`
-    * Enable SSL.
-* **Inverter API:**
-    * Domain: `api.yourdomain.com`
-    * Forward Hostname / IP: `api-inverter`
-    * Forward Port: `5000`
-    * Enable SSL if desired.
+**For detailed information on the hardware wiring, component selection, and the underlying firmware logic, please refer to the original repository first:**
+[**https://github.com/michelsciortino/esphome-aurora-inverter**](https://github.com/michelsciortino/esphome-aurora-inverter)
 
-## ESP32 Firmware Setup
-
-This section covers ESP32 firmware configuration and upload.
+This project leverages **ESPHome** to define the entire device logic—from hardware communication to data transmission via HTTP POST—in a simple and manageable `config.yaml` file.
 
 1.  **Configure `config.yaml` and `secrets.yaml`:**
-    The `config.yaml` file in `/esphome-aurora-inverter/` uses ESPHome's `secrets` mechanism for sensitive data (like Wi-Fi credentials and the API endpoint URL).
-
-    **`config.yaml` example (within `/esphome-aurora-inverter/`):**
-    This configuration sends inverter data to your API every 60 seconds, but only if the `power_in_total` is greater than zero (i.e., when the inverter is actively producing power).
-
-    ```yaml
-    # ... other configurations ...
-    wifi:
-      ssid: "${wifi_ssid}"
-      password: "${wifi_password}"
-      # ...
-
-    interval:
-      - interval: 60s
-        then:
-          - if:
-              condition:
-                lambda: return id(power_in_total).state > 0;
-              then:
-                - http_request.send:
-                    method: POST
-                    url: "${inverter_api_url}/api/inverter_data" # Uses secret for base URL
-                    request_headers:
-                      Content-Type: application/json
-                    json: !lambda |-
-                      root["power_in_total"] = id(power_in_total).state;
-                      root["power_peak_today"] = id(power_peak_today).state;
-                      root["power_peak_max"] = id(power_peak_max).state;
-                      root["inverter_temp"] = id(inverter_temp).state;
-                      root["cumulated_energy_today"] = id(cumulated_energy_today).state;
-                      root["cumulated_energy_week"] = id(cumulated_energy_week).state;
-                      root["cumulated_energy_month"] = id(cumulated_energy_month).state;
-                      root["cumulated_energy_year"] = id(cumulated_energy_year).state;
-                      root["cumulated_energy_total"] = id(cumulated_energy_total).state;
-                      root["grid_voltage"] = id(grid_voltage).state;
-                      root["connection_status"] = id(connection_status).state;
-    # ... other configurations ...
-    ```
+    The `config.yaml` file in `/esphome-aurora-inverter/` uses ESPHome's `secrets` mechanism for sensitive data.
 
     **You MUST create a `secrets.yaml` file** in the same directory (`/esphome-aurora-inverter/`) with your actual credentials and API base URL:
     ```yaml
@@ -157,12 +130,46 @@ This section covers ESP32 firmware configuration and upload.
     ```
     Follow ESPHome's prompts to connect your ESP32 and upload the firmware.
 
+### 5. Voice Assistant Integration (Amazon Alexa)
+
+The project is architected to be easily extensible to multiple voice assistants. Currently, Amazon Alexa is fully implemented.
+
+1.  **Create Alexa Skill:**
+    *   Go to the [Alexa Developer Console](https://developer.amazon.com/alexa/console/ask) and create a new custom skill. Give it an invocation name (e.g., "inverter aurora").
+
+2.  **Import Interaction Model:**
+    *   In the "Build" tab of your skill, go to "JSON Editor".
+    *   Delete the existing content and paste the entire content of the `assistants/alexa/skill-model.json` file from this repository.
+    *   **Note on Customization:** The `samples` values within the JSON for each intent are the phrases that trigger an action. Feel free to modify, add, or delete these phrases to better match your way of speaking. The more varied examples you provide, the better Alexa will understand you.
+    *   Click "Save Model", then "Build Model".
+
+3.  **Create AWS Lambda Function:**
+    *   Go to the [AWS Lambda Console](https://aws.amazon.com/lambda/) and create a new function from scratch in a supported region (e.g., `eu-west-1`).
+    *   Choose a name (e.g., `inverterAlexaHandler`), select a Python runtime (e.g., Python 3.9+).
+
+4.  **Configure Lambda Code:**
+    *   In the "Code source" editor, paste the entire content of the `assistants/alexa/lambda_handler.py` file from this repository.
+    *   Click **"Deploy"**.
+
+5.  **Connect Skill to Lambda:**
+    *   In the Lambda console, copy the function's **ARN** (top-right of the page).
+    *   Go back to the Alexa Developer Console -> "Build" -> "Endpoint".
+    *   Paste the ARN into the "Default Region" field. Save the endpoint.
+    *   Go to the "Test" tab in the Alexa console to verify the integration.
+
 ---
+## Technical Details and Credits
 
-## Credits and Attribution
+### Communication Protocol
+The Aurora Communication Protocol (version 4.2), used for communication with the inverter, is detailed in this document:
+[https://www.drhack.it/images/PDF/AuroraCommunicationProtocol_4_2.pdf](https://www.drhack.it/images/PDF/AuroraCommunicationProtocol_4_2.pdf)
 
-The ESP32 firmware configuration (`/esphome-aurora-inverter/`) in this project is based on the work by **Michel Sciortino**. The original repository can be found here:
+### Core Libraries and Attributions
 
-[https://github.com/michelsciortino/esphome-aurora-inverter](https://github.com/michelsciortino/esphome-aurora-inverter)
+*   **ESP32 Firmware Base:** The ESPHome firmware configuration in this project is based on the foundational work by **Michel Sciortino**.
+    *   Original Repository: [https://github.com/michelsciortino/esphome-aurora-inverter](https://github.com/michelsciortino/esphome-aurora-inverter)
 
-This project extends and customizes that base for integration with a Dockerized backend.
+*   **Inverter Communication Library:** The firmware leverages the `jrbenito/ABBAurora` C++ library for handling the RS485 communication protocol.
+    *   Library Repository: [https://github.com/jrbenito/ABBAurora](https://github.com/jrbenito/ABBAurora)
+
+This project extends and customizes these components for integration with a Dockerized backend and voice assistant control.
