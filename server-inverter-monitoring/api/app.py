@@ -100,7 +100,7 @@ def get_today_energy():
         return jsonify({"status": "error", "message": "Error fetching data"}), 500
     
 
-@app.route('/api/reading', methods=['POST'])
+@app.route('/api/inverter_data', methods=['POST'])
 def receive_reading():
     if not client:
         return jsonify({"status": "error", "message": "Server-side error: InfluxDB client not initialized"}), 500
