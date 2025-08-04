@@ -156,7 +156,7 @@ def receive_reading():
 
             if same_value_count >= SAME_VALUE_THRESHOLD:
                 current_time = time.time()
-                if current_time - last_notification_time >= 3600:
+                if current_time - last_notification_time >= 300:
                     send_gotify_notification(
                         title="Inverter Power Alert",
                         message=f"Power value has not changed for the last {SAME_VALUE_THRESHOLD} readings: {current_power} W",
