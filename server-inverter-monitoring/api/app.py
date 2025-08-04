@@ -1,9 +1,11 @@
 import os
-import math # Importiamo la libreria matematica per controllare i valori NaN
+import math
+import time
 from flask import Flask, request, jsonify
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
 from influxdb_client.client.query_api import QueryApi
+import requests
 
 # --- Flask App Initialization ---
 app = Flask(__name__)
@@ -30,6 +32,37 @@ VALIDATION_RANGES = {
     "power_in_total": (0, 10000), 
     "inverter_temp": (-20, 120),
 }
+
+# --- Gotify Configuration ---
+GOTIFY_URL = os.environ.get("GOTIFY_URL")
+GOTIFY_TOKEN = os.environ.get("GOTIFY_TOKEN")
+SAME_VALUE_THRESHOLD = 5
+
+last_power_value = None
+same_value_count = 0
+last_notification_time = 0
+
+def send_gotify_notification(title, message, priority=5):
+    if not GOTIFY_URL or not GOTIFY_TOKEN:
+        print("Gotify URL or token not configured, skipping notification.")
+        return
+
+    headers = {"Content-Type": "application/json"}
+    data = {"title": title, "message": message, "priority": priority}
+    
+    try:
+        response = requests.post(
+            f"{GOTIFY_URL}/message?token={GOTIFY_TOKEN}",
+            json=data,
+            headers=headers,
+            timeout=5
+        )
+        if response.status_code == 200:
+            print("Gotify notification sent successfully.")
+        else:
+            print(f"Failed to send Gotify notification: {response.status_code} - {response.text}")
+    except Exception as e:
+        print(f"Error sending Gotify notification: {e}")
 
 
 @app.route('/api/power', methods=['GET'])
@@ -102,6 +135,8 @@ def get_today_energy():
 
 @app.route('/api/inverter_data', methods=['POST'])
 def receive_reading():
+    global last_power_value, same_value_count, last_notification_time
+
     if not client:
         return jsonify({"status": "error", "message": "Server-side error: InfluxDB client not initialized"}), 500
 
@@ -109,8 +144,30 @@ def receive_reading():
     if not data:
         return jsonify({"status": "error", "message": "Invalid or empty JSON payload"}), 400
 
-    # print(f"Data received from ESP: {data}")
+    current_power = data.get('power_in_total')
+    if current_power is not None and isinstance(current_power, (int, float)) and math.isfinite(current_power):
+        if last_power_value is None:
+            # First reading, initialize the last power value
+            last_power_value = current_power
+            same_value_count = 0
+        elif current_power == last_power_value:
+            same_value_count += 1
+            print(f"Received same power value: {current_power} W, count: {same_value_count}")
 
+            if same_value_count >= SAME_VALUE_THRESHOLD:
+                current_time = time.time()
+                if current_time - last_notification_time >= 300:
+                    send_gotify_notification(
+                        title="Inverter Power Alert",
+                        message=f"Power value has not changed for the last {SAME_VALUE_THRESHOLD} readings: {current_power} W",
+                        priority=5
+                    )
+                    last_notification_time = current_time
+        else:
+            # New reading, reset the counter
+            last_power_value = current_power
+            same_value_count = 0
+            print(f"New power value received: {current_power} W, resetting counter.")            
     try:
         point = Point("inverter_readings") \
             .tag("device_name", "main_inverter")
